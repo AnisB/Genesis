@@ -140,7 +140,7 @@ class RigidGeom(RBC):
                 with open(self._gsd_path, "rb") as file:
                     gsd_dict = pkl.load(file)
                 is_cached_loaded = True
-            except (EOFError, ModuleNotFoundError, pkl.UnpicklingError):
+            except (EOFError, ModuleNotFoundError, pkl.UnpicklingError, TypeError, MemoryError):
                 gs.logger.info("Ignoring corrupted cache.")
 
         if not is_cached_loaded:
@@ -361,7 +361,7 @@ class RigidGeom(RBC):
         """
         Get the position of the geom in world frame.
         """
-        tensor = ti_to_torch(self._solver.geoms_state.pos, envs_idx, self._idx, transpose=True, copy=True)
+        tensor = ti_to_torch(self._solver.geoms_state.pos, envs_idx, self._idx, transpose=True, copy=True)[..., 0, :]
         return tensor[0] if self._solver.n_envs == 0 else tensor
 
     @gs.assert_built
@@ -369,7 +369,7 @@ class RigidGeom(RBC):
         """
         Get the quaternion of the geom in world frame.
         """
-        tensor = ti_to_torch(self._solver.geoms_state.quat, envs_idx, self._idx, transpose=True, copy=True)
+        tensor = ti_to_torch(self._solver.geoms_state.quat, envs_idx, self._idx, transpose=True, copy=True)[..., 0, :]
         return tensor[0] if self._solver.n_envs == 0 else tensor
 
     @gs.assert_built
@@ -874,7 +874,7 @@ class RigidVisGeom(RBC):
         """
         Get the position of the geom in world frame.
         """
-        tensor = ti_to_torch(self._solver.vgeoms_state.pos, envs_idx, self._idx, transpose=True, copy=True)
+        tensor = ti_to_torch(self._solver.vgeoms_state.pos, envs_idx, self._idx, transpose=True, copy=True)[..., 0, :]
         return tensor[0] if self._solver.n_envs == 0 else tensor
 
     @gs.assert_built
@@ -882,7 +882,7 @@ class RigidVisGeom(RBC):
         """
         Get the quaternion of the geom in world frame.
         """
-        tensor = ti_to_torch(self._solver.vgeoms_state.quat, envs_idx, self._idx, transpose=True, copy=True)
+        tensor = ti_to_torch(self._solver.vgeoms_state.quat, envs_idx, self._idx, transpose=True, copy=True)[..., 0, :]
         return tensor[0] if self._solver.n_envs == 0 else tensor
 
     @gs.assert_built

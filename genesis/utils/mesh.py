@@ -37,6 +37,7 @@ CVX_PATH_QUANTIZE_FACTOR = 1e-6
 Y_UP_TRANSFORM = np.asarray(  # translation on the bottom row
     [[1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, -1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]], dtype=np.float32
 )
+DEFAULT_PLANE_TEXTURE_PATH = "textures/checker.png"  # use checkerboard texture by default
 
 
 class MeshInfo:
@@ -256,7 +257,7 @@ def convex_decompose(mesh, coacd_options):
             else:
                 # if cached mesh scale is invalid, ignore cache
                 is_cached_loaded = False
-        except (EOFError, ModuleNotFoundError, pkl.UnpicklingError, TypeError):
+        except (EOFError, ModuleNotFoundError, pkl.UnpicklingError, TypeError, MemoryError):
             gs.logger.info("Ignoring corrupted cache.")
 
     if not is_cached_loaded:
@@ -896,7 +897,14 @@ def create_box(extents=None, color=(1.0, 1.0, 1.0, 1.0), bounds=None, wireframe=
     return mesh
 
 
-def create_plane(normal=(0.0, 0.0, 1.0), plane_size=(1e3, 1e3), tile_size=(1, 1), color=None):
+def create_plane(
+    normal=(0.0, 0.0, 1.0), plane_size=(1e3, 1e3), tile_size=(1, 1), color_or_texture=DEFAULT_PLANE_TEXTURE_PATH
+):
+    if isinstance(color_or_texture, str):
+        color, texture_path = None, color_or_texture
+    else:
+        color, texture_path = color_or_texture, None
+
     thickness = 1e-2  # for safety
     mesh = trimesh.creation.box(extents=[plane_size[0], plane_size[1], thickness])
     mesh.vertices[:, 2] -= thickness / 2
@@ -918,7 +926,8 @@ def create_plane(normal=(0.0, 0.0, 1.0), plane_size=(1e3, 1e3), tile_size=(1, 1)
     vmesh = trimesh.Trimesh(verts, faces, process=False)
     vmesh.vertices[:, 2] -= thickness / 2
     vmesh.vertices = gu.transform_by_R(vmesh.vertices, gu.z_up_to_R(np.asarray(normal, dtype=np.float32)))
-    if color is None:  # use checkerboard texture
+
+    if texture_path is not None:
         n_tile_x, n_tile_y = plane_size[0] / tile_size[0], plane_size[1] / tile_size[1]
         vmesh.visual = trimesh.visual.TextureVisuals(
             uv=np.array(
